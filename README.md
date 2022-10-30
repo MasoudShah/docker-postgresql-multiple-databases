@@ -1,4 +1,6 @@
-# Using multiple databases with the official PostgreSQL Docker image
+# Using multiple databases with the official PostgreSQL Docker image (wiht multiple dump files)
+
+This fork has added the functionality of adding and execution of dump files to each database.
 
 The [official recommendation](https://hub.docker.com/_/postgres/) for creating
 multiple databases is as follows:
@@ -17,6 +19,10 @@ mechanism.
 
 ### By mounting a volume
 
+Note: do not place sql scripts in 'docker-entrypoint-initdb.d' directory.
+In this example they are placed in 'db-scripts' and referenced form *.sh file.
+
+
 Clone the repository, mount its directory as a volume into
 `/docker-entrypoint-initdb.d` and declare database names separated by commas in
 `POSTGRES_MULTIPLE_DATABASES` environment variable as follows
@@ -24,32 +30,14 @@ Clone the repository, mount its directory as a volume into
 
     myapp-postgresql:
         image: postgres:9.6.2
-        volumes:
-            - ../docker-postgresql-multiple-databases:/docker-entrypoint-initdb.d
         environment:
-            - POSTGRES_MULTIPLE_DATABASES="DB1,ownerOfDB1: DB2,ownerOfDB2: ...DB(n), ownerOfDB(n)"
+			- POSTGRES_MULTIPLE_DATABASES=DB1,ownerOfDB1,db1Dump.sql-DB2,ownerOfDB2,db2Dump.sql-...DB(n),ownerOfDB(n),db(n)Dump.sql
             - POSTGRES_PASSWORD=
 
-### By building a custom image
-
-Clone the repository, build and push the image to your Docker repository,
-for example for Google Private Repository do the following:
-
-    docker build --tag=eu.gcr.io/your-project/postgres-multi-db .
-    gcloud docker -- push eu.gcr.io/your-project/postgres-multi-db
-
-You still need to pass the `POSTGRES_MULTIPLE_DATABASES` environment variable
-to the container:
-
-    myapp-postgresql:
-        image: eu.gcr.io/your-project/postgres-multi-db
-        environment:
-            - POSTGRES_MULTIPLE_DATABASES="DB1,ownerOfDB1: DB2,ownerOfDB2: ...DB(n), ownerOfDB(n)"
-            - POSTGRES_PASSWORD=
-
-### Non-standard database names
-
-If you need to use non-standard database names (hyphens, uppercase letters etc), quote them in `POSTGRES_MULTIPLE_DATABASES`:
-
-        environment:
-            - POSTGRES_MULTIPLE_DATABASES="DB1","ownerOfDB1": "DB2","ownerOfDB2": ..."DB(n)", "ownerOfDB(n)"
+	volumes:
+      - ./create-multiple-postgresql-databases.sh:/docker-entrypoint-initdb.d/create-multiple-postgresql-databases.sh
+      - ./db1Dump.sql:/db-scripts/db1Dump.sql
+      - ./db2Dump.sql:/db-scripts/db2Dump.sql
+	  ...
+	  - ./db(n)Dump.sql:/db-scripts/db(n)Dump.sql
+	  
